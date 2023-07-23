@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>3D Face with Virtual Glasses</title>
+    <style>
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <script src="file:///C:/Users/pc/Desktop/face/three.js"></script>
+    <script src="file:///C:/Users/pc/Desktop/face/OrbitControls.js"></script>
+    <script src="file:///C:/Users/pc/Desktop/face/OBJLoader.js"></script>
+    <script>
+        var scene, camera, renderer, controls;
+
+        init();
+        loadModels();
+        animate();
+
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            camera.position.set(0, 0, 5);
+            controls.update();
+        }
+
+        function loadModels() {
+            var faceLoader = new THREE.OBJLoader();
+            var glassesLoader = new THREE.OBJLoader();
+
+            faceLoader.load('file:///C:/Users/pc/Desktop/face/faces.obj', function (faceModel) {
+                scene.add(faceModel);
+                faceModel.position.set(0, 0, 0);
+                faceModel.scale.set(1, 1, 1);
+            });
+
+            glassesLoader.load('file:///C:/Users/pc/Desktop/face/glasses.obj', function (glassesModel) {
+                scene.add(glassesModel);
+                glassesModel.position.set(0, 0, 0);
+                glassesModel.scale.set(1, 1, 1);
+            });
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes App</title>
+    <style>
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+        }
+
+        .notes {
+            display: flex;
+            height: 100%;
+        }
+
+        .notes * {
+            font-family: sans-serif;
+        }
+
+        .sidebar {
+            border-right: 2px solid #dddddd;
+            flex-shrink: 0;
+            overflow-y: auto;
+            padding: 1em;
+            width: 300px;
+            height: fit-content;
+        }
+
+        .add__notes {
+            background: #f42e0bfa;
+            border: none;
+            border-radius: 7px;
+            color: #ffffff;
+            cursor: pointer;
+            font-size: 1.25em;
+            font-weight: bold;
+            margin-bottom: 1em;
+            padding: 0.75em 0;
+            width: 100%;
+        }
+
+        .add__notes:hover {
+            background: #c03e39;
+        }
+
+        .notes__list-item {
+            cursor: pointer;
+        }
+
+        .notes__list-item--selected {
+            background: #eeeeee;
+            border-radius: 7px;
+            font-weight: bold;
+        }
+
+        .notes__small-title,
+        .notes__small-updated {
+            padding: 10px;
+        }
+
+        .notes__small-title {
+            font-size: 1.2em;
+        }
+
+        .notes__small-body {
+            padding: 0 10px;
+        }
+
+        .notes__small-updated {
+            color: #aaaaaa;
+            font-style: italic;
+            text-align: right;
+        }
+
+        .notes__preview {
+            display: flex;
+            flex-direction: column;
+            padding: 2em 3em;
+            flex-grow: 1;
+        }
+
+        .title,
+        .notes__body {
+            border: none;
+            outline: none;
+            width: 100%;
+        }
+
+        .title {
+            font-size: 3em;
+            font-weight: bold;
+        }
+
+        .notes__body {
+            flex-grow: 1;
+            font-size: 1.2em;
+            line-height: 1.5;
+            margin-top: 2em;
+            resize: none;
+            min-height: 1000px;
+            min-width: 800px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="notes" id="notes">
+        <div class="sidebar">
+            <button class="add__notes" type="button">Add Note</button>
+            <div class="notes__list">
+                {% for note in notes %}
+                <div class="notes__list-item">
+                    <form method="POST" action="/notes/delete">
+                        <input type="hidden" name="noteId" value="{{ note.id }}">
+                        <div class="notes__small-title">{{ note.title }}</div>
+                        <div class="notes__small-body">{{ note.text }}</div>
+                        <div class="notes__small-updated">{{ note.timestamp }}</div>
+                        <button class="delete"   type="submit">Delete</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="notes__list">
+            <form method='POST' action="/notes">
+                <input type="hidden" name="noteId" id="noteId" value="">
+                <button class="save" id="save" name="save" type="save">Save</button>
+                <div class="notes__preview">
+                    <input class="title" type="text" id="text" name="title" placeholder="Enter a title...">
+                    <textarea class="notes__body" name="text" placeholder="Type here"></textarea>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+
+
+    <script>
+        // Wait for the DOM to load
+        document.addEventListener('DOMContentLoaded', function () {
+            // Get the necessary elements
+            var addButton = document.querySelector('.add__notes');
+            var deleteButton = document.querySelector('.delete');
+            var list = document.querySelector('.notes__list');
+            var listItems = document.querySelectorAll('.notes__list-item');
+            var titleInput = document.querySelector('.title');
+            var bodyInput = document.querySelector('.notes__body');
+            var saveInput = document.querySelector("saveNotes");
+            var selectedNote = null;
+
+            // Populate the preview area with selected note
+            function populatePreview(note) {
+                titleInput.value = note.querySelector('.notes__small-title').textContent;
+                bodyInput.value = note.querySelector('.notes__small-body').textContent;
+                selectedNote = note;
+            }
+
+            listItems.forEach(function (item) {
+                item.addEventListener('click', function () {
+                    listItems.forEach(function (item) {
+                        item.classList.remove('notes__list-item--selected');
+                    });
+
+                    item.classList.add('notes__list-item--selected');
+                    // titleInput.value = item.querySelector('.notes__small-title').textContent;
+                    // bodyInput.value = item.querySelector('.notes__small-body').textContent;
+                    // selectedNote = item;
+                    populatePreview(item);
+
+                });
+            });
+
+
+
+
+            // Add Note button click event
+            addButton.addEventListener('click', function () {
+                // Create a new note item
+                var newNote = document.createElement('div');
+                newNote.classList.add('notes__list-item');
+
+                // Create elements for the note title, body, and updated timestamp
+                var noteTitle = document.createElement('div');
+                noteTitle.classList.add('notes__small-title');
+                noteTitle.textContent = titleInput.value;
+
+                var noteBody = document.createElement('div');
+                noteBody.classList.add('notes__small-body');
+                noteBody.textContent = bodyInput.value;
+
+                var noteUpdated = document.createElement('div');
+                noteUpdated.classList.add('notes__small-updated');
+                noteUpdated.textContent = getCurrentTimestamp();
+
+
+                var saveButton = document.createElement('button');
+                saveButton.classList.add('notes__save');
+                saveButton.textContent = "Save";
+                // save button click event
+                saveButton.addEventListener('click', function () {
+                    noteTitle.textContent = titleInput.value;
+                    noteBody.textContent = bodyInput.value;
+                    noteUpdated.textContent = getCurrentTimestamp();
+                });
+
+
+
+
+                // Note item click event
+                newNote.addEventListener('click', function () {
+                    // Deselect all other notes
+                    //  var selectedNote = document.querySelector('.notes__list-item--selected');
+                    if (selectedNote) {
+                        selectedNote.classList.remove('notes__list-item--selected');
+                    }
+
+                    // Select the clicked note
+                    newNote.classList.add('notes__list-item--selected');
+                    selectedNote = newNote;
+
+                    // Update the preview with the note content
+                    titleInput.value = noteTitle.textContent;
+                    bodyInput.value = noteBody.textContent;
+                });
+
+                // Append the elements to the new note item
+                newNote.appendChild(noteTitle);
+                newNote.appendChild(noteBody);
+                newNote.appendChild(noteUpdated);
+                newNote.appendChild(saveButton);
+
+
+                list.appendChild(newNote);
+
+                // Clear the title and body inputs
+                clearPreview();
+
+                // Add the new note item to the list
+                // list.appendChild(newNote);
+            });
+            // Delete button click event
+            deleteButton.addEventListener('click', function () {
+                if (selectedNote) {
+                    list.removeChild(selectedNote);
+                    selectedNote = null;
+                    clearPreview();
+                }
+            });
+
+
+
+
+            // Helper function to get the current timestamp
+            function getCurrentTimestamp() {
+                var now = new Date();
+                var options = { weekday: 'long', hour: 'numeric', minute: 'numeric' };
+                return now.toLocaleDateString('en-US', options);
+            }
+
+            // Helper function to clear the preview area
+            function clearPreview() {
+                titleInput.value = '';
+                bodyInput.value = '';
+
+            }
+            // Delete button click event
+            deleteButton.addEventListener('click', function () {
+                if (selectedNote) {
+                    list.removeChild(selectedNote);
+                    selectedNote = null;
+                    titleInput.value = '';
+                    bodyInput.value = '';
+                }
+            });
+        });    
+    </script>
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes App</title>
+    <style>
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+        }
+
+        .notes {
+            display: flex;
+            height: 100%;
+        }
+
+        .notes * {
+            font-family: sans-serif;
+        }
+
+        .sidebar {
+            border-right: 2px solid #dddddd;
+            flex-shrink: 0;
+            overflow-y: auto;
+            padding: 1em;
+            width: 300px;
+            height: fit-content;
+        }
+
+        .add__notes {
+            background: #f42e0bfa;
+            border: none;
+            border-radius: 7px;
+            color: #ffffff;
+            cursor: pointer;
+            font-size: 1.25em;
+            font-weight: bold;
+            margin-bottom: 1em;
+            padding: 0.75em 0;
+            width: 100%;
+        }
+
+        .add__notes:hover {
+            background: #c03e39;
+        }
+
+        .notes__list-item {
+            cursor: pointer;
+        }
+
+        .notes__list-item--selected {
+            background: #eeeeee;
+            border-radius: 7px;
+            font-weight: bold;
+        }
+
+        .notes__small-title,
+        .notes__small-updated {
+            padding: 10px;
+        }
+
+        .notes__small-title {
+            font-size: 1.2em;
+        }
+
+        .notes__small-body {
+            padding: 0 10px;
+        }
+
+        .notes__small-updated {
+            color: #aaaaaa;
+            font-style: italic;
+            text-align: right;
+        }
+
+        .notes__preview {
+            display: flex;
+            flex-direction: column;
+            padding: 2em 3em;
+            flex-grow: 1;
+        }
+
+        .title,
+        .notes__body {
+            border: none;
+            outline: none;
+            width: 100%;
+        }
+
+        .title {
+            font-size: 3em;
+            font-weight: bold;
+        }
+
+        .notes__body {
+            flex-grow: 1;
+            font-size: 1.2em;
+            line-height: 1.5;
+            margin-top: 2em;
+            resize: none;
+            min-height: 1000px;
+            min-width: 800px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="notes" id="notes">
+        <div class="sidebar">
+            <button class="add__notes" type="button">Add Note</button>
+            <div class="notes__list">
+                {% for note in notes %}
+                <div class="notes__list-item">
+                    <form method="POST" action="/notes">
+                        <input type="hidden" name="noteId" value="{{ note.id }}">
+                        <input class="notes__small-title" name="title" id="title" value="{{ note.title }}">
+                        <textarea class="notes__small-body" name="text" id="text">{{ note.text }}</textarea>
+                        <div class="notes__small-updated">{{ note.timestamp }}</div>
+                        <input type="submit" name="delete" value="Delete">
+                        <button class="delete" name="delete"  type="submit">Delete</button>
+                    </form>
+                </div> 
+                {% endfor %}
+            </div>
+        </div>
+        <div class="notes__list">
+            <form method="POST" action="/notes">
+                <input type="hidden" name="noteId" value="">
+                <button class="save" id="save" name="save" type="button">Save</button>
+                <div class="notes__preview">
+                    <input class="title" type="text" name="title" id="title" placeholder="Enter the title">
+                    <textarea class="notes__body" name="text" id="text" placeholder="Enter the text"></textarea>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Wait for the DOM to load
+        document.addEventListener('DOMContentLoaded', function () {
+            // Get the necessary elements
+            var addButton = document.querySelector('.add__notes');
+            var deleteButton = document.querySelector('.delete');
+            var list = document.querySelector('.notes__list');
+            var listItems = document.querySelectorAll('.notes__list-item');
+            var titleInput = document.querySelector('.title');
+            var bodyInput = document.querySelector('.notes__body');
+            var saveButton = document.querySelector('.save');
+            var selectedNote = null;
+
+            // Populate the preview area with selected note
+            function populatePreview(note) {
+                titleInput.value = note.querySelector('.notes__small-title').value;
+                bodyInput.value = note.querySelector('.notes__small-body').value;
+                selectedNote = note;
+            }
+
+            listItems.forEach(function (item) {
+                item.addEventListener('click', function () {
+                    listItems.forEach(function (item) {
+                        item.classList.remove('notes__list-item--selected');
+                    });
+
+                    item.classList.add('notes__list-item--selected');
+                    populatePreview(item);
+                });
+            });
+
+            // Add Note button click event
+            addButton.addEventListener('click', function () {
+                // Clear the title and body inputs
+                clearPreview();
+            });
+
+            // Save button click event
+            saveButton.addEventListener('click', function () {
+                if (selectedNote) {
+                    selectedNote.querySelector('.notes__small-title').value = titleInput.value;
+                    selectedNote.querySelector('.notes__small-body').value = bodyInput.value;
+                    selectedNote.querySelector('.notes__small-updated').textContent = getCurrentTimestamp();
+                } else {
+                    // Create a new note item
+                    var newNote = document.createElement('div');
+                    newNote.classList.add('notes__list-item');
+
+                    // Create elements for the note title, body, and updated timestamp
+                    var noteTitle = document.createElement('input');
+                    noteTitle.classList.add('notes__small-title');
+                    noteTitle.setAttribute('name', 'title');
+                    noteTitle.setAttribute('value', titleInput.value);
+
+                    var noteBody = document.createElement('textarea');
+                    noteBody.classList.add('notes__small-body');
+                    noteBody.setAttribute('name', 'text');
+                    noteBody.textContent = bodyInput.value;
+
+                    var noteUpdated = document.createElement('div');
+                    noteUpdated.classList.add('notes__small-updated');
+                    noteUpdated.textContent = getCurrentTimestamp();
+
+                    // Note item click event
+                    newNote.addEventListener('click', function () {
+                        listItems.forEach(function (item) {
+                            item.classList.remove('notes__list-item--selected');
+                        });
+
+                        newNote.classList.add('notes__list-item--selected');
+                        populatePreview(newNote);
+                    });
+
+                    // Append the elements to the note item
+                    newNote.appendChild(noteTitle);
+                    newNote.appendChild(noteBody);
+                    newNote.appendChild(noteUpdated);
+
+                    // Append the note item to the list
+                    list.appendChild(newNote);
+                }
+
+                // Clear the title and body inputs
+                clearPreview();
+            });
+
+            // Delete button click event
+            deleteButton.addEventListener('click', function () {
+                if (selectedNote) {
+                    selectedNote.remove();
+                    selectedNote = null;
+                    clearPreview();
+                }
+            });
+
+            // Clear the title and body inputs
+            function clearPreview() {
+                titleInput.value = '';
+                bodyInput.value = '';
+                selectedNote = null;
+                listItems.forEach(function (item) {
+                    item.classList.remove('notes__list-item--selected');
+                });
+            }
+
+            // Get the current timestamp
+            function getCurrentTimestamp() {
+                var now = new Date();
+                return now.toLocaleString();
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -6,36 +6,41 @@ const canvas = document.querySelector('.webgl');
 const scene = new THREE.Scene();
 
 const loader = new GLTFLoader();
+
 let face, glasses;
+
+// Load the face model
 loader.load('hmm/faces.glb', function (glb) {
     face = glb.scene;
     face.traverse(function (child) {
         if (child.isMesh) {
-            child.material.side = THREE.DoubleSide; 
-            child.material.depthTest = true; 
+            child.material.side = THREE.DoubleSide; // Ensure the face model is visible from both sides
+            child.material.depthTest = true; // Enable depth test for face model
         }
     });
     face.scale.set(0.1, 0.1, 0.1);
     scene.add(face);
 
+    // Check if both models are loaded before rendering
     if (glasses) {
         render();
     }
 }, undefined, function (error) {
-    console.error('ERROR!', error);
+    console.error('An error occurred while loading the face model', error);
 });
 
-
+// Load the glasses model
 loader.load('hmm/glasses.glb', function (glb) {
     glasses = glb.scene;
     glasses.scale.set(0.1, 0.1, 0.1);
     scene.add(glasses);
 
+    // Check if both models are loaded before rendering
     if (face) {
         render();
     }
 }, undefined, function (error) {
-    console.error('ERROR!', error);
+    console.error('An error occurred while loading the glasses model', error);
 });
 
 const light = new THREE.DirectionalLight(0xffffff, 1);
@@ -59,6 +64,8 @@ renderer.setSize(sizes.width, sizes.height);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.gammaOutput = true;
+
+// Add orbit controls
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.rotateSpeed = 0.5;
